@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 from collections import namedtuple
 from datetime import datetime
@@ -84,17 +84,17 @@ def generate_tweet(article):
     linkPlaceholder = '0'*23
     link = article[1]
     # Abstract
-    abstract = article[2]
+    abstract = re.sub(r'\n+', ' ', article[2])
 
-    out = f'{title} {linkPlaceholder} {abstract}'    
+    out = f'{title}\n{linkPlaceholder}\n{abstract}'    
     out = add_hashtags(out)
 
     out = out[:MAX_CHAR]
     out = out.replace(linkPlaceholder, link)
 
-    out = re.sub(r'<.*?>', ' ', out)
-    out = re.sub(r'\n+', ' ', out)
-    out = re.sub(r'\s+', ' ', out)
+    out = re.sub(r'<.*?>', '', out)
+    out = re.sub(r'\n+', r'\n', out)
+    out = re.sub(r'\ +', ' ', out)
     out = re.sub(r'\#+', '#', out)
     out = re.sub(r'(\w)\#', r'\1', out)
     
@@ -102,8 +102,6 @@ def generate_tweet(article):
 
     # Go back and remove everything after the last end of word/phrase/sentence
     out = re.sub(r'(\.|\,|\?|\s)[^\.\,\?\s]*$', r'-', out)
-    # while len(out) > MAX_CHAR:
-    #     out = re.sub(r'(\.|\,|\?|\s)[^\.\,\?\s]*$', r'-', out)
     
     return out
 
