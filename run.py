@@ -2,7 +2,7 @@
 
 from collections import namedtuple
 from datetime import datetime
-import os, sys
+import os, sys, time
 import xml.etree.ElementTree as ET
 import logging
 
@@ -28,6 +28,7 @@ CONFIG = [
     # ('CSHC', 'http://export.arxiv.org/rss/cs.HC'),
 ]
 
+TWEET_DELAY = 1000
 CONSUMER_KEY = 'a'
 CONSUMER_SECRET = 'a'
 ACCESS_TOKEN_KEY = 'a'
@@ -43,12 +44,15 @@ def parse_articles(xml):
     root = ET.ElementTree(ET.fromstring(xml))
     ns = {'rss': 'http://purl.org/rss/1.0/'}
     items = root.findall('rss:item', ns)
-    return [
-        [
-            item.find('rss:{}'.format(field), ns).text
-            for field in ['title', 'link', 'description']
-        ] for item in items
-    ]
+    return {
+    'date': date,
+    'articles': [
+            [
+                item.find('rss:{}'.format(field), ns).text
+                for field in ['title', 'link', 'description']
+            ] for item in items
+        ]
+    }
 
 def add_hashtags(abstract):
     MIN_HASHTAGIFY = 10
@@ -57,7 +61,7 @@ def add_hashtags(abstract):
     tokens = nltk.word_tokenize(abstract)
     tags = nltk.pos_tag(tokens)
     for word, tag in tags:
-        if word[0] == '0':
+        if '0'*23 in word:
             continue
         if '-' in word:
             continue
@@ -116,6 +120,8 @@ def send_tweet(api, tweet):
     except twitter.TwitterError as e:
         log.warning(f'Failed to send "{tweet}" ({e.message})')
 
+PREV_DATE = None
+
 if __name__ == '__main__':
     log.info('Running run.py on {}'.format(datetime.now()))
 
@@ -132,6 +138,6 @@ if __name__ == '__main__':
             access_token_secret=ACCESS_TOKEN_SECRET
         )
 
-        for article in parse_articles(res.text):
+        for article in parse_articles(res.text)['articles']:
             print(generate_tweet(article), '\n')
             send_tweet(api, generate_tweet(article))
