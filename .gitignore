@@ -1,3 +1,4 @@
 keys.yaml
 tmp*
 *.log
+nohup.out
