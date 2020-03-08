@@ -12,6 +12,13 @@ import re
 import twitter
 import nltk
 
+import argparse
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument('--offset', type=int, help='articles offset', default=0)
+args = parser.parse_args()
+
 log = logging.getLogger()
 formatter = logging.Formatter('%(asctime)s | %(levelname)s | %(message)s')
 fhandler = logging.FileHandler(filename='twitter.log', mode='a')
@@ -27,8 +34,8 @@ ARXIV_SRC = [
     }
 ]
 
-TWEET_DELAY = 60*20
-REFRESH_DELAY = 60*60*10
+TWEET_STACK_DURATION = 10*60*60
+REFRESH_DELAY = 5*60*60
 LINK_PLACEHOLER = '0'*23
 AUTH_OBJ = None
 
@@ -111,10 +118,17 @@ def generate_tweet(article):
     
     return out
 
-def send_tweet(api, tweet):
+def send_tweet(tweet):
     """
     Actually POST tweet to twitter API
     """
+
+    api = twitter.Api(
+        AUTH_OBJ['consumer_key'],
+        AUTH_OBJ['consumer_secret'],
+        access_token_key=AUTH_OBJ['access_token_key'],
+        access_token_secret=AUTH_OBJ['access_token_secret']
+    )
     tweet_clean = tweet.replace('\n', ' ')
     try:
         api.PostUpdate(tweet)
@@ -141,13 +155,6 @@ if __name__ == '__main__':
                 log.warning(f'Failed on {source["url"]}: {res.reason}')
                 continue
 
-            api = twitter.Api(
-                AUTH_OBJ['consumer_key'],
-                AUTH_OBJ['consumer_secret'],
-                access_token_key=AUTH_OBJ['access_token_key'],
-                access_token_secret=AUTH_OBJ['access_token_secret']
-            )
-
             try:
                 with open('prev_sent.time', 'r') as f:
                     pdate = f.readlines()[0].rstrip('\n')
@@ -159,14 +166,27 @@ if __name__ == '__main__':
             if adate != pdate:
                 log.info(f'Article date {adate} is different from the previous date {pdate}')
             else:
-                log.info(f'Article date {adate} is the same as the previous date, skipping loop')
-                continue
+                log.info(f'Article date {adate} is the same as the previous date')
+                if args.offset != 0:
+                    pass
+                else:
+                    continue
             
             with open('prev_sent.time', 'w') as f:
                 f.write(adate)
+            
+            if len(articles) == 0:
+                log.info(f'Zero articles found, skipping this loop')
+                continue    
+            tweetDelay = TWEET_STACK_DURATION / len(articles)
+            log.info(f'Found {len(articles[args.offset:])} articles, delay set to {tweetDelay}s')
 
-            for article in articles:
-                send_tweet(api, generate_tweet(article))
-                time.sleep(TWEET_DELAY)
+            for article in articles[args.offset:]:
+                send_tweet(generate_tweet(article))
+                time.sleep(tweetDelay)
+
+            # reset the offset argument
+            if args.offset != 0:
+                args.offset = 0
 
         time.sleep(REFRESH_DELAY)

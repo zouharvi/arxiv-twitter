@@ -1,6 +1,6 @@
 ArXiv computational linguistics Twitter bot
 ===
 
-Originaly by @ozan https://github.com/ozan/arxiv-twitter.
+Find me [here](https://twitter.com/arxivCSCL). Scraping the arXiv rss [Computation and Language](https://twitter.com/arxiv_cscl) feed and relaying that to Twitter.
 
-Scraping the arXiv rss [Computation and Language](https://twitter.com/arxiv_cscl) feed and relaying that to Twitter.
+Originaly by @ozan https://github.com/ozan/arxiv-twitter and I just added some VERY rudimentary NER based on POS tags and other heuristics.
