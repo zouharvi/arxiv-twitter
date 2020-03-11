@@ -118,7 +118,7 @@ def generate_tweet(article):
     
     return out
 
-def send_tweet(tweet):
+def send_tweet(i, tweet):
     """
     Actually POST tweet to twitter API
     """
@@ -132,7 +132,7 @@ def send_tweet(tweet):
     tweet_clean = tweet.replace('\n', ' ')
     try:
         api.PostUpdate(tweet)
-        log.info(f'Sent "{tweet_clean}"')
+        log.info(f'Sent {i} "{tweet_clean}"')
     except twitter.TwitterError as e:
         log.warning(f'Failed to send "{tweet_clean}" ({e.message})')
 
@@ -162,6 +162,10 @@ if __name__ == '__main__':
                 pdate = None
 
             adate, articles = parse_articles(res.text)
+            
+            if len(articles) == 0:
+                log.info(f'Zero articles found, skipping this loop')
+                continue    
 
             if adate != pdate:
                 log.info(f'Article date {adate} is different from the previous date {pdate}')
@@ -175,14 +179,11 @@ if __name__ == '__main__':
             with open('prev_sent.time', 'w') as f:
                 f.write(adate)
             
-            if len(articles) == 0:
-                log.info(f'Zero articles found, skipping this loop')
-                continue    
             tweetDelay = TWEET_STACK_DURATION / len(articles)
             log.info(f'Found {len(articles[args.offset:])} articles, delay set to {tweetDelay}s')
 
-            for article in articles[args.offset:]:
-                send_tweet(generate_tweet(article))
+            for i, article in enumerate(articles[args.offset:]):
+                send_tweet(i, generate_tweet(article))
                 time.sleep(tweetDelay)
 
             # reset the offset argument
